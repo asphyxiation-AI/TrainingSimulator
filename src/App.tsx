@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { 
   Database, 
   Settings, 
@@ -197,6 +197,12 @@ function App() {
   const balance = useMemo(() => calculateSinterBalance(weights), [weights]);
   const assessment = useMemo(() => assessCharge(balance), [balance]);
 
+  // Оптимизированный обработчик копирования отчета
+  const handleCopyReport = useCallback(() => {
+    navigator.clipboard.writeText(reportContent);
+    alert('Отчет успешно скопирован в буфер обмена!');
+  }, [reportContent]);
+
   // Данные для круговой диаграммы
   const pieData = useMemo(() => {
     return defaultMaterials
@@ -218,8 +224,12 @@ function App() {
 
   // Обработчик изменения веса материала
   const handleWeightChange = (id: string, value: string) => {
-    const numValue = parseFloat(value) || 0;
-    setWeights((prev: Record<string, number>) => ({
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      setWeights(prev => ({ ...prev, [id]: 0 }));
+      return;
+    }
+    setWeights(prev => ({
       ...prev,
       [id]: Math.max(0, Math.min(1000, numValue)),
     }));
@@ -307,8 +317,8 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
 
   // Функция для определения цвета железа
   const getFeColor = (fe: number) => {
-    if (fe >= 55) return { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600' };
-    if (fe >= 50) return { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' };
+    if (fe >= 55) return { bg: 'bg-green-50', border: 'border-green-500', text: 'text-green-600' };
+    if (fe >= 50) return { bg: 'bg-yellow-50', border: 'border-yellow-500', text: 'text-yellow-600' };
     if (fe > 0) return { bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-700' };
     return { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-600' };
   };
@@ -316,10 +326,10 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
   const feColors = getFeColor(balance.fePercent);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 text-gray-900 w-full">
       {/* Header */}
       <header className="bg-gradient-to-r from-slate-800 to-slate-700 text-white shadow-xl">
-        <div className="container mx-auto px-4 py-5">
+        <div className="max-w-[1800px] mx-auto px-8 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Activity className="w-8 h-8 text-blue-400" />
@@ -330,7 +340,6 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
                 </p>
               </div>
             </div>
-            {/* Кнопки управления */}
             <div className="flex gap-2">
               <button
                 onClick={handleReset}
@@ -351,63 +360,62 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        {/* Dashboard Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content FHD 1920x1080 */}
+      <main className="max-w-[1800px] mx-auto px-8 py-8">
+        <div className="grid grid-cols-12 gap-6">
           
-          {/* Панель материалов */}
-          <section className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-500">
-              <div className="flex items-center gap-2 mb-4">
-                <Database className="w-6 h-6 text-blue-500" />
-                <h2 className="text-xl font-bold text-gray-800">
-                  Доступные материалы
-                </h2>
+          {/* Materials Panel */}
+          <div className="col-span-4">
+            <div className="bg-white backdrop-blur rounded-2xl border border-gray-200 p-6 shadow-xl shadow-gray-200/50">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2.5 bg-blue-50 rounded-lg">
+                  <Database className="w-5 h-5 text-blue-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-800">Доступные материалы</h2>
               </div>
               <div className="space-y-3">
                 {defaultMaterials.map((material) => (
                   <div
                     key={material.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-md transition-all bg-gradient-to-br from-gray-50 to-white"
+                    className="group bg-gray-50 border border-gray-200 hover:border-blue-300 rounded-xl p-4 transition-all duration-300 hover:bg-blue-50/30"
                   >
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      {material.id === 'concentrate' && <Droplets className="w-4 h-4 text-blue-400" />}
-                      {material.id === 'ore' && <Flame className="w-4 h-4 text-orange-400" />}
-                      {material.id === 'limestone' && <Settings className="w-4 h-4 text-gray-400" />}
+                    <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
+                      {material.id === 'concentrate' && <Droplets className="w-4 h-4 text-blue-500" />}
+                      {material.id === 'ore' && <Flame className="w-4 h-4 text-orange-500" />}
+                      {material.id === 'limestone' && <Settings className="w-4 h-4 text-gray-500" />}
                       {material.id === 'coke' && <BarChart3 className="w-4 h-4 text-gray-600" />}
                       {material.name}
                     </h3>
-                    <div className="grid grid-cols-2 gap-2 mt-2 text-sm text-gray-600">
-                      <div>Fe: <span className="font-semibold">{material.fe}%</span></div>
-                      <div>CaO: <span className="font-semibold">{material.cao}%</span></div>
-                      <div>SiO₂: <span className="font-semibold">{material.sio2}%</span></div>
-                      <div>ППП: <span className="font-semibold">{material.loss}%</span></div>
-                      <div>Цена: <span className="font-semibold">{material.cost} руб/т</span></div>
-                      <div>Влага: <span className="font-semibold">{material.moisture}%</span></div>
+                    <div className="grid grid-cols-2 gap-1.5 text-xs text-gray-600">
+                      <div>Fe: <span className="font-semibold text-gray-800">{material.fe}%</span></div>
+                      <div>CaO: <span className="font-semibold text-gray-800">{material.cao}%</span></div>
+                      <div>SiO₂: <span className="font-semibold text-gray-800">{material.sio2}%</span></div>
+                      <div>ППП: <span className="font-semibold text-gray-800">{material.loss}%</span></div>
+                      <div>Цена: <span className="font-semibold text-gray-800">{material.cost} ₽/т</span></div>
+                      <div>Влага: <span className="font-semibold text-gray-800">{material.moisture}%</span></div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Основная область расчетов */}
-          <section className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-green-500">
-              <div className="flex items-center gap-2 mb-4">
-                <Settings className="w-6 h-6 text-green-500" />
-                <h2 className="text-xl font-bold text-gray-800">
-                  Панель расчета шихты
-                </h2>
+          {/* Calculator Panel */}
+          <div className="col-span-8">
+            <div className="bg-white backdrop-blur rounded-2xl border border-gray-200 p-6 shadow-xl shadow-gray-200/50">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2.5 bg-emerald-50 rounded-lg">
+                  <Settings className="w-5 h-5 text-emerald-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-800">Панель расчета шихты</h2>
               </div>
-              <p className="text-gray-600 mb-4 flex items-center gap-2">
+              <p className="text-gray-600 mb-5 flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                Введите количество каждого материала (кг):
+                Введите количество каждого материала в килограммах:
               </p>
-              <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
                 {defaultMaterials.map((material) => (
-                  <div key={material.id} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4">
+                  <div key={material.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 transition-all duration-300 hover:border-emerald-300">
                     <div className="flex items-center gap-4 mb-3">
                       <label className="w-32 font-semibold text-gray-700">{material.name}:</label>
                       <input
@@ -417,185 +425,179 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
                         step="5"
                         value={weights[material.id] || ''}
                         onChange={(e) => handleWeightChange(material.id, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+                        className="flex-1 px-4 py-2.5 bg-white border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl text-gray-900 text-sm transition-all duration-300"
                         placeholder="0"
                       />
-                      <span className="text-gray-500 font-medium w-12">кг</span>
+                      <span className="text-gray-500 font-medium w-14">кг</span>
                     </div>
-                    {/* Слайдер */}
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400 w-8">0</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1000"
-                        step="5"
-                        value={weights[material.id] || 0}
-                        onChange={(e) => handleSliderChange(material.id, parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500"
-                      />
-                      <span className="text-xs text-gray-400 w-10 text-right">1000</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1000"
+                      step="5"
+                      value={weights[material.id] || 0}
+                      onChange={(e) => handleSliderChange(material.id, parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-emerald-500"
+                    />
+                    <div className="mt-2.5 text-sm text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5 inline-block">
+                      Сухая масса: {(weights[material.id] * (1 - material.moisture / 100)).toFixed(1)} кг
                     </div>
-                    {/* Сухая масса */}
-                    {weights[material.id] > 0 && (
-                      <div className="mt-2 text-sm text-blue-600 bg-blue-50 rounded px-2 py-1 inline-block">
-                        Сухая масса: {(weights[material.id] * (1 - material.moisture / 100)).toFixed(1)} кг
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             </div>
-          </section>
-
-          {/* Панель результатов */}
-          <section className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-lg p-6 border-t-4 border-purple-500">
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-6 h-6 text-purple-500" />
-                <h2 className="text-xl font-bold text-gray-800">
-                  Результаты расчета
-                </h2>
+          </div>
+          {/* Results Panel */}
+          <div className="col-span-12">
+            <div className="bg-white backdrop-blur rounded-2xl border border-gray-200 p-6 shadow-xl shadow-gray-200/50">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-violet-50 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-violet-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-800">Результаты расчета</h2>
               </div>
               
-              {/* Общие показатели */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center shadow-sm">
-                  <p className="text-sm text-gray-600 font-medium">Общий вес шихты</p>
-                  <p className="text-2xl font-bold text-blue-600">{balance.totalWeight.toFixed(1)} кг</p>
+              {/* Main Stats */}
+              <div className="grid grid-cols-4 gap-5 mb-7">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-5 text-center">
+                  <p className="text-sm text-gray-600 font-medium mb-1">Общий вес шихты</p>
+                  <p className="text-3xl font-bold text-blue-600">{balance.totalWeight.toFixed(1)} кг</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 text-center shadow-sm">
-                  <p className="text-sm text-gray-600 font-medium">Сухая масса</p>
-                  <p className="text-2xl font-bold text-green-600">{balance.totalDryMass.toFixed(1)} кг</p>
+                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-2xl p-5 text-center">
+                  <p className="text-sm text-gray-600 font-medium mb-1">Сухая масса</p>
+                  <p className="text-3xl font-bold text-emerald-600">{balance.totalDryMass.toFixed(1)} кг</p>
                 </div>
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 text-center shadow-sm">
-                  <p className="text-sm text-gray-600 font-medium">Средний ППП</p>
-                  <p className="text-2xl font-bold text-orange-600">{balance.avgLoss.toFixed(2)}%</p>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-5 text-center">
+                  <p className="text-sm text-gray-600 font-medium mb-1">Средний ППП</p>
+                  <p className="text-3xl font-bold text-orange-600">{balance.avgLoss.toFixed(2)}%</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center shadow-sm">
-                  <p className="text-sm text-gray-600 font-medium">Себестоимость</p>
-                  <p className="text-2xl font-bold text-purple-600">{balance.cost.toFixed(2)} руб</p>
+                <div className="bg-gradient-to-br from-violet-50 to-violet-100 border border-violet-200 rounded-2xl p-5 text-center">
+                  <p className="text-sm text-gray-600 font-medium mb-1">Себестоимость</p>
+                  <p className="text-3xl font-bold text-violet-600">{balance.cost.toFixed(2)} ₽</p>
                 </div>
               </div>
 
-              {/* Диаграммы */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* Круговая диаграмма - Структура шихты */}
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4">
-                  <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <PieChart className="w-5 h-5" />
+              {/* Charts */}
+              <div className="grid grid-cols-2 gap-6 mb-7">
+                {/* Pie Chart */}
+                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-700">
+                    <PieChart className="w-5 h-5 text-gray-500" />
                     Структура шихты
                   </h3>
                   {pieData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie
                           data={pieData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={40}
-                          outerRadius={80}
-                          paddingAngle={2}
+                          innerRadius={50}
+                          outerRadius={85}
+                          paddingAngle={3}
                           dataKey="value"
-                          label={({ name, percent }) => `${name} ${Number(percent)}%`}
+                          label={({ name, percent }) => `${name} ${Number(percent || 0)}%`}
                         >
                           {pieData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => `${value} кг`} />
+                        <Tooltip 
+                          formatter={(value) => `${value} кг`}
+                          contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb', borderRadius: '12px' }}
+                        />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-[200px] flex items-center justify-center text-gray-400">
-                      Введите количество материалов
+                    <div className="h-[220px] flex items-center justify-center text-gray-500">
+                      Введите количество материалов для отображения диаграммы
                     </div>
                   )}
                 </div>
 
-                {/* Радарная диаграмма - Сравнение с эталоном */}
-                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4">
-                  <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
-                    Сравнение с эталоном
+                {/* Radar Chart */}
+                <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-700">
+                    <Activity className="w-5 h-5 text-gray-500" />
+                    Сравнение с эталонными показателями
                   </h3>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <ResponsiveContainer width="100%" height={280}>
                     <RadarChart data={radarData}>
-                      <PolarGrid stroke="#e5e7eb" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 75]} />
+                      <PolarGrid stroke="#d1d5db" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#4b5563', fontSize: 11 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 75]} tick={{ fill: '#6b7280' }} />
                       <Radar
                         name="Эталон"
                         dataKey="ideal"
                         stroke="#22c55e"
                         fill="#22c55e"
-                        fillOpacity={0.1}
+                        fillOpacity={0.15}
                       />
                       <Radar
-                        name="Текущее"
+                        name="Текущее значение"
                         dataKey="current"
                         stroke="#3b82f6"
                         fill="#3b82f6"
-                        fillOpacity={0.2}
+                        fillOpacity={0.25}
                       />
                       <Legend />
-                      <Tooltip />
+                      <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb', borderRadius: '12px' }} />
                     </RadarChart>
                   </ResponsiveContainer>
                   <p className="text-xs text-gray-500 text-center mt-2">
-                    Эталон: B={IDEAL_VALUES.basicity}, Fe={IDEAL_VALUES.fe}%, CaO={IDEAL_VALUES.cao}%, SiO₂={IDEAL_VALUES.sio2}%
+                    Эталон: Основность = {IDEAL_VALUES.basicity}, Fe = {IDEAL_VALUES.fe}%, CaO = {IDEAL_VALUES.cao}%, SiO₂ = {IDEAL_VALUES.sio2}%
                   </p>
                 </div>
               </div>
 
-              {/* Химический состав агломерата */}
-              <h3 className="text-lg font-bold text-gray-700 mb-3 flex items-center gap-2">
+              {/* Chemical Composition */}
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-700">
                 <Activity className="w-5 h-5 text-gray-500" />
-                Химический состав агломерата:
+                Химический состав полученного агломерата:
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                <div className={`rounded-xl p-4 text-center shadow-sm border-2 ${feColors.bg} ${feColors.border}`}>
-                  <p className="text-sm text-gray-600 font-medium">Fe</p>
-                  <p className={`text-2xl font-bold ${feColors.text}`}>{balance.fePercent.toFixed(2)}%</p>
+              <div className="grid grid-cols-5 gap-5 mb-6">
+                <div className={`rounded-2xl p-5 text-center border-2 ${feColors.bg} ${feColors.border}`}>
+                  <p className="text-sm text-gray-600 font-medium">Железо (Fe)</p>
+                  <p className={`text-3xl font-bold ${feColors.text}`}>{balance.fePercent.toFixed(2)}%</p>
                   {balance.fePercent > 0 && balance.fePercent < 50 && (
-                    <div className="mt-2 flex items-center justify-center gap-1 text-xs text-red-600 font-medium">
-                      <AlertTriangle className="w-3 h-3" />
+                    <div className="mt-2.5 flex items-center justify-center gap-1.5 text-xs text-red-600 font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5" />
                       Низкое качество
                     </div>
                   )}
                 </div>
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center shadow-sm border-2 border-blue-200">
-                  <p className="text-sm text-gray-600 font-medium">CaO</p>
-                  <p className="text-2xl font-bold text-blue-600">{balance.caoPercent.toFixed(2)}%</p>
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl p-5 text-center">
+                  <p className="text-sm text-gray-600 font-medium">Оксид кальция (CaO)</p>
+                  <p className="text-3xl font-bold text-blue-600">{balance.caoPercent.toFixed(2)}%</p>
                 </div>
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center shadow-sm border-2 border-gray-200">
-                  <p className="text-sm text-gray-600 font-medium">SiO₂</p>
-                  <p className="text-2xl font-bold text-gray-600">{balance.sio2Percent.toFixed(2)}%</p>
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-2xl p-5 text-center">
+                  <p className="text-sm text-gray-600 font-medium">Диоксид кремния (SiO₂)</p>
+                  <p className="text-3xl font-bold text-gray-700">{balance.sio2Percent.toFixed(2)}%</p>
                 </div>
-                <div className={`rounded-xl p-4 text-center shadow-sm border-2 ${basicityColors.bg} ${basicityColors.border}`}>
+                <div className={`rounded-2xl p-5 text-center border-2 ${basicityColors.bg} ${basicityColors.border}`}>
                   <p className="text-sm text-gray-600 font-medium">Основность (B)</p>
-                  <p className={`text-2xl font-bold ${basicityColors.text}`}>{balance.basicity.toFixed(3)}</p>
-                  <p className="text-xs text-gray-500 mt-1">оптимум: 1.2–1.4</p>
+                  <p className={`text-3xl font-bold ${basicityColors.text}`}>{balance.basicity.toFixed(3)}</p>
+                  <p className="text-xs text-gray-500 mt-1">оптимальный диапазон: 1.2–1.4</p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 text-center shadow-sm border-2 border-amber-200">
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 rounded-2xl p-5 text-center">
                   <p className="text-sm text-gray-600 font-medium">Масса агломерата</p>
-                  <p className="text-2xl font-bold text-amber-600">{balance.sinterMass.toFixed(1)} кг</p>
+                  <p className="text-3xl font-bold text-amber-600">{balance.sinterMass.toFixed(1)} кг</p>
                 </div>
               </div>
 
-              {/* Сводка состава */}
-              <div className={`rounded-xl p-5 shadow-sm border-2 ${
+              {/* Status Panel */}
+              <div className={`rounded-2xl p-6 border-2 ${
                 assessment.status === 'good' ? 'bg-green-50 border-green-300' :
                 assessment.status === 'warning' ? 'bg-yellow-50 border-yellow-300' :
                 assessment.status === 'danger' ? 'bg-red-50 border-red-300' :
                 'bg-gray-50 border-gray-300'
               }`}>
-                <div className="flex items-center gap-2 mb-3">
-                  {assessment.status === 'good' && <CheckCircle className="w-6 h-6 text-green-600" />}
-                  {assessment.status === 'warning' && <AlertTriangle className="w-6 h-6 text-yellow-600" />}
-                  {assessment.status === 'danger' && <AlertTriangle className="w-6 h-6 text-red-600" />}
-                  <h4 className={`text-lg font-bold ${
+                <div className="flex items-center gap-3 mb-4">
+                  {assessment.status === 'good' && <CheckCircle className="w-7 h-7 text-green-600" />}
+                  {assessment.status === 'warning' && <AlertTriangle className="w-7 h-7 text-yellow-600" />}
+                  {assessment.status === 'danger' && <AlertTriangle className="w-7 h-7 text-red-600" />}
+                  <h4 className={`text-xl font-bold ${
                     assessment.status === 'good' ? 'text-green-700' :
                     assessment.status === 'warning' ? 'text-yellow-700' :
                     assessment.status === 'danger' ? 'text-red-700' :
@@ -605,13 +607,13 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
                   </h4>
                 </div>
                 {assessment.details.length > 0 && (
-                  <ul className="space-y-1 text-sm">
+                  <ul className="space-y-1.5">
                     {assessment.details.map((detail, index) => (
-                      <li key={index} className={`${
+                      <li key={index} className={`text-sm ${
                         detail.startsWith('✓') ? 'text-green-700' :
                         detail.startsWith('⚠') ? 'text-yellow-700' :
                         detail.startsWith('✗') ? 'text-red-700' :
-                        'text-gray-600'
+                        'text-gray-700'
                       }`}>
                         {detail}
                       </li>
@@ -621,53 +623,49 @@ ${assessment.details.map(d => `   • ${d}`).join('\n')}
               </div>
 
               {balance.totalWeight === 0 && (
-                <p className="text-center text-gray-400 mt-4 italic">
-                  Введите количество материалов для расчета
+                <p className="text-center text-gray-500 mt-6 italic text-lg">
+                  Введите количество материалов для начала расчета
                 </p>
               )}
             </div>
-          </section>
-
+          </div>
         </div>
       </main>
 
       {/* Footer */}
       <footer className="bg-gradient-to-r from-slate-700 to-slate-600 text-white mt-8 py-4">
-        <div className="container mx-auto px-4 text-center text-sm">
+        <div className="max-w-[1800px] mx-auto px-8 text-center text-sm">
           <p>Учебный тренажер для моделирования доменной плавки</p>
         </div>
       </footer>
 
-      {/* Модальное окно отчета */}
+      {/* Report Modal */}
       {showReport && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                <h3 className="font-bold text-lg">Отчет по расчету шихты</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-4xl w-full max-h-[85vh] overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6" />
+                <h3 className="font-bold text-xl">Отчет по расчету шихты</h3>
               </div>
               <button
                 onClick={() => setShowReport(false)}
-                className="hover:bg-blue-400 rounded-lg p-1 transition-colors"
+                className="hover:bg-white/10 rounded-xl p-1.5 transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(80vh-70px)]">
-              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+              <pre className="whitespace-pre-wrap font-mono text-sm text-slate-200 bg-slate-900/50 p-5 rounded-xl border border-slate-700">
                 {reportContent}
               </pre>
-              <div className="mt-4 flex justify-end">
+              <div className="mt-5 flex justify-end">
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(reportContent);
-                    alert('Отчет скопирован в буфер обмена!');
-                  }}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg flex items-center gap-2 transition-colors"
+                  onClick={handleCopyReport}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl flex items-center gap-2 transition-all duration-300 shadow-lg shadow-emerald-600/20"
                 >
                   <FileText className="w-4 h-4" />
-                  Копировать в буфер
+                  Копировать в буфер обмена
                 </button>
               </div>
             </div>
